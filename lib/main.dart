@@ -1,13 +1,27 @@
+import 'dart:async';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:push_app/src/pages/home_page.dart';
 import 'package:push_app/src/pages/mensaje_page.dart';
+
+final _mensajesStreamController = StreamController<String>.broadcast();
+
+Stream<String> get mensajesStream => _mensajesStreamController.stream;
+
+
+dispose(){
+  _mensajesStreamController?.close();
+}
  
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   print('Handling a background message ${message.messageId}');
+  //print(message.notification.body);
+  final argumento = message.notification.title ?? 'No-data';
+  _mensajesStreamController.sink.add(argumento);
   
 }
 
@@ -46,6 +60,8 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
 
+  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
   @override
   void initState() {
     super.initState();
@@ -71,28 +87,31 @@ class _MyAppState extends State<MyApp> {
                 icon: 'launch_background',
               ),
             ));
+        //print(message.notification.title);
+        final argumento = message.notification.title ?? 'No-data';
+        _mensajesStreamController.sink.add(argumento);
       }
     });
 
 
     getToken(); 
+    mensajesStream.listen((argumento) {
+      print('argumento desde main: $argumento');
+      navigatorKey.currentState.pushNamed('mensaje',arguments: argumento);
+     });
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        body: Center(
-          child: Text('Id'),
-        ),
-      ),
-      /* title: 'Material App',
+      navigatorKey: navigatorKey,
+      title: 'Material App',
       initialRoute: 'home',
       routes: {
         'home': (BuildContext c) => HomePage(),
         'mensaje': (BuildContext c) => MensajePage(),
-      }, */
+      },
     );
   }
 
